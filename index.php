@@ -61,10 +61,6 @@ if (isset($_GET['expired']) && $_GET['expired'] == 1) {
             border-radius: 16px;
             box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
             padding: 30px;
-        }
-
-        .card-front,
-        .card-back {
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -131,6 +127,45 @@ if (isset($_GET['expired']) && $_GET['expired'] == 1) {
             margin-bottom: 15px;
             text-align: center;
         }
+
+        /* Animaciones arena */
+        @keyframes dissolve {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+                filter: blur(0px);
+                clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-30px) scale(0.7);
+                filter: blur(4px);
+                clip-path: polygon(50% 0, 100% 20%, 80% 100%, 20% 100%, 0 20%);
+            }
+        }
+
+        @keyframes assemble {
+            0% {
+                opacity: 0;
+                transform: translateY(30px) scale(0.7);
+                filter: blur(4px);
+                clip-path: polygon(50% 100%, 100% 80%, 80% 0%, 20% 0%, 0 80%);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+                filter: blur(0px);
+                clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
+            }
+        }
+
+        .dissolve {
+            animation: dissolve 0.6s forwards ease-out;
+        }
+
+        .assemble {
+            animation: assemble 0.6s forwards ease-out;
+        }
     </style>
 </head>
 
@@ -139,7 +174,7 @@ if (isset($_GET['expired']) && $_GET['expired'] == 1) {
         <div class="flip-card">
             <!-- LOGIN -->
             <div class="card-face card-front">
-                <form action="/login_handler.php" method="POST">
+                <form action="/login_handler.php" method="POST" id="loginForm">
                     <h1>Iniciar Sesión</h1>
                     <?php if ($error): ?>
                         <div class="error"><?= $error ?></div>
@@ -155,13 +190,13 @@ if (isset($_GET['expired']) && $_GET['expired'] == 1) {
                     <div class="form-group">
                         <button type="submit">INGRESAR</button>
                     </div>
-                    <div class="toggle-link" onclick="flipCard()">¿No tenés cuenta? Registrate</div>
+                    <div class="toggle-link" onclick="flipCardAnimation()">¿No tenés cuenta? Registrate</div>
                 </form>
             </div>
 
             <!-- REGISTRO -->
             <div class="card-face card-back">
-                <form action="/register_handler.php" method="POST">
+                <form action="/register_handler.php" method="POST" id="registerForm">
                     <h1>Registro</h1>
                     <div class="form-group">
                         <label for="user_name">Nombre de usuario:</label>
@@ -178,15 +213,36 @@ if (isset($_GET['expired']) && $_GET['expired'] == 1) {
                     <div class="form-group">
                         <button type="submit">REGISTRAR</button>
                     </div>
-                    <div class="toggle-link" onclick="flipCard()">¿Ya tenés cuenta? Iniciá sesión</div>
+                    <div class="toggle-link" onclick="flipCardAnimation()">¿Ya tenés cuenta? Iniciá sesión</div>
                 </form>
             </div>
         </div>
     </div>
 
     <script>
-        function flipCard() {
-            document.getElementById('cardContainer').classList.toggle('flipped');
+        const container = document.getElementById('cardContainer');
+        const flipCard = container.querySelector('.flip-card');
+        const frontForm = flipCard.querySelector('.card-front form');
+        const backForm = flipCard.querySelector('.card-back form');
+
+        function flipCardAnimation() {
+            const isLoginVisible = !container.classList.contains('flipped');
+
+            const outgoing = isLoginVisible ? frontForm : backForm;
+            const incoming = isLoginVisible ? backForm : frontForm;
+
+            outgoing.classList.remove('assemble');
+            outgoing.classList.add('dissolve');
+
+            setTimeout(() => {
+                container.classList.toggle('flipped');
+                outgoing.classList.remove('dissolve');
+                incoming.classList.add('assemble');
+
+                setTimeout(() => {
+                    incoming.classList.remove('assemble');
+                }, 600);
+            }, 400);
         }
     </script>
 </body>
