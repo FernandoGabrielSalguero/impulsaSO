@@ -27,47 +27,29 @@ if (isset($_GET['expired']) && $_GET['expired'] == 1) {
             align-items: center;
             height: 100vh;
             margin: 0;
-            perspective: 1200px;
         }
 
-        .card-container {
+        .form-wrapper {
             width: 400px;
-            height: 500px;
-            position: relative;
-            transition: transform 1s;
-            transform-style: preserve-3d;
-        }
-
-        .flip-card {
-            width: 100%;
-            height: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
-            transform-style: preserve-3d;
-            transition: transform 1s ease-in-out;
-        }
-
-        .flipped .flip-card {
-            transform: rotateY(180deg);
-        }
-
-        .card-face {
-            width: 100%;
-            height: 100%;
-            position: absolute;
-            backface-visibility: hidden;
             background: #fff;
             border-radius: 16px;
             box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
             padding: 30px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
+            position: relative;
+            overflow: hidden;
         }
 
-        .card-back {
-            transform: rotateY(180deg);
+        form {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            transition: opacity 0.4s ease;
+            display: none;
+        }
+
+        form.active {
+            display: block;
         }
 
         h1 {
@@ -128,7 +110,7 @@ if (isset($_GET['expired']) && $_GET['expired'] == 1) {
             text-align: center;
         }
 
-        /* Animaciones arena */
+        /* Animaciones tipo arena */
         @keyframes dissolve {
             0% {
                 opacity: 1;
@@ -170,77 +152,68 @@ if (isset($_GET['expired']) && $_GET['expired'] == 1) {
 </head>
 
 <body>
-    <div class="card-container" id="cardContainer">
-        <div class="flip-card">
-            <!-- LOGIN -->
-            <div class="card-face card-front">
-                <form action="/login_handler.php" method="POST" id="loginForm">
-                    <h1>Iniciar Sesión</h1>
-                    <?php if ($error): ?>
-                        <div class="error"><?= $error ?></div>
-                    <?php endif; ?>
-                    <div class="form-group">
-                        <label for="usuario">Usuario:</label>
-                        <input type="text" name="usuario" id="usuario" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="contrasena">Contraseña:</label>
-                        <input type="password" name="contrasena" id="contrasena" required>
-                    </div>
-                    <div class="form-group">
-                        <button type="submit">INGRESAR</button>
-                    </div>
-                    <div class="toggle-link" onclick="flipCardAnimation()">¿No tenés cuenta? Registrate</div>
-                </form>
+    <div class="form-wrapper" id="formWrapper">
+        <!-- LOGIN -->
+        <form action="/login_handler.php" method="POST" id="loginForm" class="active">
+            <h1>Iniciar Sesión</h1>
+            <?php if ($error): ?>
+                <div class="error"><?= $error ?></div>
+            <?php endif; ?>
+            <div class="form-group">
+                <label for="usuario">Usuario:</label>
+                <input type="text" name="usuario" id="usuario" required>
             </div>
+            <div class="form-group">
+                <label for="contrasena">Contraseña:</label>
+                <input type="password" name="contrasena" id="contrasena" required>
+            </div>
+            <div class="form-group">
+                <button type="submit">INGRESAR</button>
+            </div>
+            <div class="toggle-link" onclick="toggleForms()">¿No tenés cuenta? Registrate</div>
+        </form>
 
-            <!-- REGISTRO -->
-            <div class="card-face card-back">
-                <form action="/register_handler.php" method="POST" id="registerForm">
-                    <h1>Registro</h1>
-                    <div class="form-group">
-                        <label for="user_name">Nombre de usuario:</label>
-                        <input type="text" name="user_name" id="user_name" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="pass">Contraseña:</label>
-                        <input type="password" name="pass" id="pass" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="email">Correo electrónico:</label>
-                        <input type="email" name="email" id="email" required>
-                    </div>
-                    <div class="form-group">
-                        <button type="submit">REGISTRAR</button>
-                    </div>
-                    <div class="toggle-link" onclick="flipCardAnimation()">¿Ya tenés cuenta? Iniciá sesión</div>
-                </form>
+        <!-- REGISTRO -->
+        <form action="/register_handler.php" method="POST" id="registerForm">
+            <h1>Registro</h1>
+            <div class="form-group">
+                <label for="user_name">Nombre de usuario:</label>
+                <input type="text" name="user_name" id="user_name" required>
             </div>
-        </div>
+            <div class="form-group">
+                <label for="pass">Contraseña:</label>
+                <input type="password" name="pass" id="pass" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Correo electrónico:</label>
+                <input type="email" name="email" id="email" required>
+            </div>
+            <div class="form-group">
+                <button type="submit">REGISTRAR</button>
+            </div>
+            <div class="toggle-link" onclick="toggleForms()">¿Ya tenés cuenta? Iniciá sesión</div>
+        </form>
     </div>
 
     <script>
-        const container = document.getElementById('cardContainer');
-        const flipCard = container.querySelector('.flip-card');
-        const frontForm = flipCard.querySelector('.card-front form');
-        const backForm = flipCard.querySelector('.card-back form');
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
 
-        function flipCardAnimation() {
-            const isLoginVisible = !container.classList.contains('flipped');
+        function toggleForms() {
+            const showingLogin = loginForm.classList.contains('active');
 
-            const outgoing = isLoginVisible ? frontForm : backForm;
-            const incoming = isLoginVisible ? backForm : frontForm;
+            const currentForm = showingLogin ? loginForm : registerForm;
+            const nextForm = showingLogin ? registerForm : loginForm;
 
-            outgoing.classList.remove('assemble');
-            outgoing.classList.add('dissolve');
+            currentForm.classList.remove('assemble');
+            currentForm.classList.add('dissolve');
 
             setTimeout(() => {
-                container.classList.toggle('flipped');
-                outgoing.classList.remove('dissolve');
-                incoming.classList.add('assemble');
+                currentForm.classList.remove('dissolve', 'active');
+                nextForm.classList.add('active', 'assemble');
 
                 setTimeout(() => {
-                    incoming.classList.remove('assemble');
+                    nextForm.classList.remove('assemble');
                 }, 600);
             }, 400);
         }
