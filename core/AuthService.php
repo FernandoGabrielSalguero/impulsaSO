@@ -25,7 +25,7 @@ $userSessionData = [
     'id' => $user['id'],
     'username' => $user['user_name'],
     'email' => $user['email'],
-    'role' => $user['rol'],
+    'role' => $user['role'],
 ];
 
     SessionManager::setUser($userSessionData);

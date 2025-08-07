@@ -11,40 +11,39 @@ class AuthModel
         $this->db = $pdo;
     }
 
-    public function login($usuario, $contrasenaIngresada)
-    {
-        $sql = "SELECT 
-                    u.id,
-                    u.user_name,
-                    u.pass,
-                    u.email,
-                    r.name AS rol
-                FROM users u
-                LEFT JOIN user_roles ur ON u.id = ur.user_id
-                LEFT JOIN roles r ON ur.role_id = r.id
-                WHERE u.user_name = :usuario
-                LIMIT 1";
+public function login($usuario, $contrasenaIngresada)
+{
+    $sql = "SELECT 
+        u.id,
+        u.user_name,
+        u.pass,
+        u.email,
+        r.name AS role
+        FROM users u
+        LEFT JOIN user_roles ur ON u.id = ur.user_id
+        LEFT JOIN roles r ON ur.role_id = r.id
+        WHERE u.user_name = :usuario
+        LIMIT 1";
 
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute(['usuario' => $usuario]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute(['usuario' => $usuario]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if (!$user) {
-            return false;
-        }
+    if (!$user) return false;
 
-        $hash = $user['pass'] ?? '';
-        $isHashed = preg_match('/^\$2y\$/', $hash);
+    $hash = $user['pass'] ?? '';
+    $isHashed = preg_match('/^\$2y\$/', $hash);
 
-        if (
-            (!$isHashed && $hash === $contrasenaIngresada) ||
-            ($isHashed && password_verify($contrasenaIngresada, $hash))
-        ) {
-            return $user;
-        }
-
-        return false;
+    if (
+        (!$isHashed && $hash === $contrasenaIngresada) ||
+        ($isHashed && password_verify($contrasenaIngresada, $hash))
+    ) {
+        return $user;
     }
+
+    return false;
+}
+
 
     public function getPermissionsByUserId(int $userId): array
     {
