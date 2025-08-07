@@ -1,1 +1,0 @@
-En esta carpeta, vamos a cargar las facturas y luego vamos a insertar el link en la base de datos

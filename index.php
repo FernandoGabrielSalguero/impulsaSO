@@ -53,15 +53,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'cocina':
                 header('Location: /views/cocina/cocina_dashboard.php');
                 break;
-            case 'cuyo_placa':
-                header('Location: /views/cuyo_placas/cuyo_placa_dashboard.php');
-                break;
-            case 'papas':
-                header('Location: /views/papa/papa_dashboard.php');
-                break;
-            case 'representante':
-                header('Location: /views/representante/representante_dashboard.php');
-                break;
             default:
                 die("Rol no reconocido: " . $user['Rol']);
         }
