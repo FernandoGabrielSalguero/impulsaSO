@@ -1,25 +1,23 @@
 <?php
 $error = '';
 
-// Mostrar error si la sesión expiró o si falló el login
 if (isset($_GET['expired']) && $_GET['expired'] == 1) {
     $error = "La sesión expiró por inactividad. Por favor, iniciá sesión nuevamente.";
 } elseif (isset($_GET['error']) && $_GET['error'] == 1) {
     $error = "Usuario o contraseña incorrectos.";
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iniciar Sesión</title>
+    <title>Iniciar o Registrarse</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f5f5f5;
+            background: linear-gradient(135deg, #8e44ad, #3498db);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -30,16 +28,33 @@ if (isset($_GET['expired']) && $_GET['expired'] == 1) {
         .login-container {
             background: white;
             padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
+            position: relative;
+            overflow: hidden;
         }
 
-        .login-container h1 {
-            text-align: center;
-            color: #673ab7;
-            margin-bottom: 20px;
+        .form-container {
+            display: flex;
+            width: 200%;
+            transition: transform 0.8s ease-in-out;
+        }
+
+        form {
+            width: 50%;
+            padding: 0 15px;
+            opacity: 0;
+            transition: opacity 0.6s ease;
+        }
+
+        form.active {
+            opacity: 1;
+        }
+
+        .login-container.show-register .form-container {
+            transform: translateX(-50%);
         }
 
         .form-group {
@@ -59,11 +74,6 @@ if (isset($_GET['expired']) && $_GET['expired'] == 1) {
             border-radius: 6px;
         }
 
-        .form-group input:focus {
-            border-color: #673ab7;
-            outline: none;
-        }
-
         .form-group button {
             width: 100%;
             padding: 10px;
@@ -79,69 +89,90 @@ if (isset($_GET['expired']) && $_GET['expired'] == 1) {
             background-color: #5e35b1;
         }
 
+        .toggle-link {
+            text-align: center;
+            margin-top: 15px;
+            color: #3498db;
+            cursor: pointer;
+            font-weight: bold;
+            transition: color 0.3s;
+        }
+
+        .toggle-link:hover {
+            color: #21618c;
+        }
+
+        h1 {
+            text-align: center;
+            color: #673ab7;
+            margin-bottom: 20px;
+        }
+
         .error {
             color: red;
             margin-bottom: 10px;
             text-align: center;
         }
-
-        .password-container {
-            position: relative;
-        }
-
-        .toggle-password {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            cursor: pointer;
-        }
     </style>
 </head>
 
 <body>
-    <div class="login-container">
-        <h1>Iniciar Sesión</h1>
-        <?php if ($error): ?>
-            <div class="error"><?= $error ?></div>
-        <?php endif; ?>
-        <form action="/login_handler.php" method="POST">
-            <div class="form-group">
-                <label for="usuario">Usuario:</label>
-                <input type="text" name="usuario" id="usuario" required>
+    <div class="login-container" id="loginContainer">
+        <div class="form-container">
+            <!-- LOGIN -->
+            <form action="/login_handler.php" method="POST" class="login-form active">
+                <h1>Iniciar Sesión</h1>
+                <?php if ($error): ?>
+                    <div class="error"><?= $error ?></div>
+                <?php endif; ?>
+                <div class="form-group">
+                    <label for="usuario">Usuario:</label>
+                    <input type="text" name="usuario" id="usuario" required>
+                </div>
+                <div class="form-group password-container">
+                    <label for="contrasena">Contraseña:</label>
+                    <input type="password" name="contrasena" id="contrasena" required>
+                </div>
+                <div class="form-group">
+                    <button type="submit">INGRESAR</button>
+                </div>
+                <div class="toggle-link" onclick="toggleForm()">¿No tenés cuenta? Registrate</div>
+            </form>
 
-            </div>
-            <div class="form-group password-container">
-                <label for="contrasena">Contraseña:</label>
-                <input type="password" name="contrasena" id="contrasena" required>
-            </div>
-            <div class="form-group">
-                <button type="submit">INGRESAR</button>
-            </div>
-        </form>
+            <!-- REGISTRO -->
+            <form action="/register_handler.php" method="POST" class="register-form">
+                <h1>Registrarse</h1>
+                <div class="form-group">
+                    <label for="user_name">Nombre de usuario:</label>
+                    <input type="text" name="user_name" id="user_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="pass">Contraseña:</label>
+                    <input type="password" name="pass" id="pass" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Correo electrónico:</label>
+                    <input type="email" name="email" id="email" required>
+                </div>
+                <div class="form-group">
+                    <button type="submit">REGISTRAR</button>
+                </div>
+                <div class="toggle-link" onclick="toggleForm()">¿Ya tenés cuenta? Iniciá sesión</div>
+            </form>
+        </div>
     </div>
 
     <script>
-        // visualizador de contraseña
-        const togglePassword = document.querySelector('.toggle-password');
-        const passwordField = document.getElementById('contrasena');
+        const container = document.getElementById('loginContainer');
+        const loginForm = document.querySelector('.login-form');
+        const registerForm = document.querySelector('.register-form');
 
-        togglePassword.addEventListener('click', () => {
-            const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordField.setAttribute('type', type);
-        });
-
-        // visualizar los campos del formulario de ingreso por consola:
-        document.querySelector('form').addEventListener('submit', e => {
-            const u = document.getElementById('usuario').value;
-            const c = document.getElementById('contrasena').value;
-            console.log("Intento login con:", u, c);
-        });
+        function toggleForm() {
+            container.classList.toggle('show-register');
+            loginForm.classList.toggle('active');
+            registerForm.classList.toggle('active');
+        }
     </script>
-
-
-    <!-- Spinner Global -->
-    <script src="views/partials/spinner-global.js"></script>
 </body>
 
 </html>
