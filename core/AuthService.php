@@ -12,26 +12,29 @@ class AuthService
         $this->authModel = new AuthModel($pdo);
     }
 
-    public function login(string $username, string $password): bool
-    {
-        $user = $this->authModel->login($username, $password);
-        if (!$user) return false;
+public function login(string $username, string $password): bool
+{
+    $user = $this->authModel->login($username, $password);
+    if (!$user) return false;
 
-        // Armamos los datos que queremos guardar en sesión
-        $userSessionData = [
-            'id' => $user['Id'],
-            'username' => $user['Usuario'],
-            'name' => $user['Nombre'],
-            'email' => $user['Correo'],
-            'phone' => $user['Telefono'],
-            'role' => $user['Rol'],
-            'status' => $user['Estado'],
-            'balance' => $user['Saldo'] ?? 0.00,
-        ];
+    // Obtener permisos desde la base
+    $permissions = $this->authModel->getPermissionsByUserId($user['Id']);
 
-        SessionManager::setUser($userSessionData);
-        return true;
-    }
+    $userSessionData = [
+        'id' => $user['Id'],
+        'username' => $user['Usuario'],
+        'name' => $user['Nombre'],
+        'email' => $user['Correo'],
+        'phone' => $user['Telefono'],
+        'role' => $user['Rol'],
+        'status' => $user['Estado'],
+        'balance' => $user['Saldo'] ?? 0.00,
+        'permissions' => $permissions, // ✅ agregamos permisos
+    ];
+
+    SessionManager::setUser($userSessionData);
+    return true;
+}
 
     public function logout()
     {

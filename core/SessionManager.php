@@ -64,4 +64,10 @@ class SessionManager
             exit;
         }
     }
+
+    public static function hasPermission(string $permission): bool
+{
+    $user = self::getUser();
+    return in_array($permission, $user['permissions'] ?? []);
+}
 }

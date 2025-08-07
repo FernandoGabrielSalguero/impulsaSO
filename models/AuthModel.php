@@ -48,4 +48,20 @@ class AuthModel
     return false;
 }
 
+public function getPermissionsByUserId(int $userId): array
+{
+    $sql = "
+        SELECT DISTINCT p.name
+        FROM user_roles ur
+        JOIN role_permissions rp ON ur.role_id = rp.role_id
+        JOIN permissions p ON rp.permission_id = p.id
+        WHERE ur.user_id = :user_id
+    ";
+
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute(['user_id' => $userId]);
+    return $stmt->fetchAll(PDO::FETCH_COLUMN);
+}
+
+
 }
