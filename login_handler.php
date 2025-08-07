@@ -14,10 +14,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($auth->login($username, $password)) {
         $user = SessionManager::getUser();
         switch ($user['role']) {
-            case 'admin':
+            case '1':
                 header("Location: /views/admin/admin_dashboard.php");
                 break;
-            case 'client':
+            case '2':
                 header("Location: /views/client/client_dashboard.php");
                 break;
             default:
