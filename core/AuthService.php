@@ -18,19 +18,15 @@ public function login(string $username, string $password): bool
     if (!$user) return false;
 
     // Obtener permisos desde la base
-    $permissions = $this->authModel->getPermissionsByUserId($user['Id']);
+    $permissions = $this->authModel->getPermissionsByUserId((int)$user['id']);
 
-    $userSessionData = [
-        'id' => $user['Id'],
-        'username' => $user['Usuario'],
-        'name' => $user['Nombre'],
-        'email' => $user['Correo'],
-        'phone' => $user['Telefono'],
-        'role' => $user['Rol'],
-        'status' => $user['Estado'],
-        'balance' => $user['Saldo'] ?? 0.00,
-        'permissions' => $permissions, // ✅ agregamos permisos
-    ];
+
+$userSessionData = [
+    'id' => $user['id'],
+    'username' => $user['user_name'],
+    'email' => $user['email'],
+    'role' => $user['rol'],
+];
 
     SessionManager::setUser($userSessionData);
     return true;
