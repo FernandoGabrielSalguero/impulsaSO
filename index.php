@@ -1,65 +1,12 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
-// Configurar duración de sesión en 20 minutos
-ini_set('session.gc_maxlifetime', 1200); // 20 minutos
-session_set_cookie_params([
-    'lifetime' => 1200,
-    'path' => '/',
-    'domain' => '',
-    'secure' => isset($_SERVER['HTTPS']),
-    'httponly' => true,
-    'samesite' => 'Lax'
-]);
-session_start();
-
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/models/AuthModel.php';
-
 $error = '';
 
-// Mensaje si viene por expiración
+// Mostrar error si la sesión expiró o si falló el login
 if (isset($_GET['expired']) && $_GET['expired'] == 1) {
     $error = "La sesión expiró por inactividad. Por favor, iniciá sesión nuevamente.";
+} elseif (isset($_GET['error']) && $_GET['error'] == 1) {
+    $error = "Usuario o contraseña incorrectos.";
 }
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $usuario = $_POST['usuario'];
-    $contrasena = $_POST['contrasena'];
-
-    $auth = new AuthModel($pdo);
-    $user = $auth->login($usuario, $contrasena);
-
-    if ($user) {
-        // Guardar solo los datos de la tabla Usuarios en sesión
-        $_SESSION['usuario_id'] = $user['Id'];
-        $_SESSION['usuario_id'] = $user['Id'];
-        $_SESSION['usuario'] = $user['Usuario'];
-        $_SESSION['nombre'] = $user['Nombre'];
-        $_SESSION['correo'] = $user['Correo'];
-        $_SESSION['telefono'] = $user['Telefono'];
-        $_SESSION['rol'] = $user['Rol'];
-        $_SESSION['estado'] = $user['Estado'];
-        $_SESSION['saldo'] = $user['Saldo'] ?? 0.00;
-        $_SESSION['LAST_ACTIVITY'] = time();
-
-        // Redirección por Rol
-        switch ($user['Rol']) {
-            case 'administrador':
-                header('Location: /views/admin/admin_dashboard.php');
-                break;
-            case 'cocina':
-                header('Location: /views/cocina/cocina_dashboard.php');
-                break;
-            default:
-                die("Rol no reconocido: " . $user['Rol']);
-        }
-        exit;
-    }
-}
-
 ?>
 
 <!DOCTYPE html>
@@ -158,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php if ($error): ?>
             <div class="error"><?= $error ?></div>
         <?php endif; ?>
-        <form action="" method="POST">
+        <form action="/login_handler.php" method="POST">
             <div class="form-group">
                 <label for="usuario">Usuario:</label>
                 <input type="text" name="usuario" id="usuario" required>
@@ -183,12 +130,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
             passwordField.setAttribute('type', type);
         });
-
-        // imprirmir los datos de la sesion en la consola
-        <?php if (!empty($_SESSION)): ?>
-            const sessionData = <?= json_encode($_SESSION, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
-            console.log("Datos de sesión:", sessionData);
-        <?php endif; ?>
 
         // visualizar los campos del formulario de ingreso por consola:
         document.querySelector('form').addEventListener('submit', e => {

@@ -1,24 +1,18 @@
 <?php
-// middleware/authMiddleware.php
+require_once __DIR__ . '/../core/SessionManager.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+SessionManager::start();
 
 /**
  * Verifica que el usuario esté logueado y tenga el rol adecuado.
- * @param string $requiredRole El rol requerido para acceder (ej: 'sve', 'cooperativa', 'productor')
+ * @param string $requiredRole
  */
-function checkAccess($requiredRole) {
-if (!isset($_SESSION['nombre'])) {
-    // Usuario no logueado
-    header('Location: /index.php');
-    exit;
-}
+function checkAccess(string $requiredRole)
+{
+    $user = SessionManager::getUser();
 
-    if (!isset($_SESSION['rol']) || $_SESSION['rol'] !== $requiredRole) {
-        // Usuario logueado pero con rol incorrecto
-        echo "🚫 Acceso restringido: esta sección es solo para el rol <strong>$requiredRole</strong>.";
+    if (!$user || ($user['role'] ?? '') !== $requiredRole) {
+        header('Location: /index.php');
         exit;
     }
 }
