@@ -23,7 +23,7 @@ class AuthModel
         Correo,
         Telefono,
         Saldo
-        FROM Usuarios
+        FROM users
         WHERE Usuario = :usuario
         LIMIT 1";
 
