@@ -78,6 +78,10 @@ $correoVerificado = !empty($perfil['check_correo']);
                         <span class="material-icons" style="color:#6366f1">home</span>
                         <span class="link-text">Inicio</span>
                     </li>
+                    <li onclick="location.href='landing_page_request.php'">
+                        <span class="material-icons" style="color:#6366f1">rocket_launch</span>
+                        <span class="link-text">Landing Page</span>
+                    </li>
                     <li onclick="location.href='../../logout.php'">
                         <span class="material-icons" style="color:red">logout</span>
                         <span class="link-text">Salir</span>
