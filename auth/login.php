@@ -17,10 +17,72 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once __DIR__ . '/../config.php';
-require_once __DIR__ . '/../models/AuthModel.php';
+require_once __DIR__ . '/AuthModel.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: /index.php');
+    exit;
+}
+
+$action = $_POST['action'] ?? 'login';
+$auth = new AuthModel($pdo);
+
+if ($action === 'register') {
+    $nombre = trim($_POST['nombre'] ?? '');
+    $correo = trim($_POST['correo'] ?? '');
+    $contrasena = (string)($_POST['contrasena'] ?? '');
+    $contrasenaConfirm = (string)($_POST['contrasena_confirm'] ?? '');
+
+    $isValidEmail = filter_var($correo, FILTER_VALIDATE_EMAIL);
+    $hasValidPassword = strlen($contrasena) >= 8;
+
+    if ($nombre === '' || !$isValidEmail || !$hasValidPassword) {
+        registrarAuditoria($pdo, [
+            'evento' => 'register_error',
+            'estado' => 'invalid',
+            'datos' => [
+                'correo' => $correo,
+            ],
+        ]);
+        header('Location: /index.php?register_error=invalid');
+        exit;
+    }
+
+    if ($contrasena !== $contrasenaConfirm) {
+        registrarAuditoria($pdo, [
+            'evento' => 'register_error',
+            'estado' => 'nomatch',
+            'datos' => [
+                'correo' => $correo,
+            ],
+        ]);
+        header('Location: /index.php?register_error=nomatch');
+        exit;
+    }
+
+    $register = $auth->register($nombre, $correo, $contrasena);
+    if (is_array($register) && isset($register['error'])) {
+        registrarAuditoria($pdo, [
+            'evento' => 'register_error',
+            'estado' => $register['error'],
+            'datos' => [
+                'correo' => $correo,
+            ],
+        ]);
+        $errorKey = $register['error'] === 'exists' ? 'exists' : 'invalid';
+        header('Location: /index.php?register_error=' . $errorKey);
+        exit;
+    }
+
+    registrarAuditoria($pdo, [
+        'evento' => 'register_ok',
+        'estado' => 'ok',
+        'usuario_id' => $register['id'] ?? null,
+        'usuario_login' => $register['usuario'] ?? null,
+        'rol' => $register['rol'] ?? null,
+    ]);
+
+    header('Location: /index.php?register_ok=1');
     exit;
 }
 
@@ -39,7 +101,6 @@ if ($usuario === '' || $contrasena === '') {
     exit;
 }
 
-$auth = new AuthModel($pdo);
 $user = $auth->login($usuario, $contrasena);
 
 if (is_array($user) && isset($user['error'])) {
@@ -81,6 +142,18 @@ if ($user) {
     switch ($user['Rol']) {
         case 'administrador':
             header('Location: /views/admin/admin_dashboard.php');
+            break;
+        case 'cocina':
+            header('Location: /views/cocina/cocina_dashboard.php');
+            break;
+        case 'cuyo_placa':
+            header('Location: /views/cuyo_placas/cuyo_placa_dashboard.php');
+            break;
+        case 'papas':
+            header('Location: /views/papa/papa_dashboard.php');
+            break;
+        case 'representante':
+            header('Location: /views/representante/representante_dashboard.php');
             break;
         default:
             die('Rol no reconocido: ' . $user['Rol']);

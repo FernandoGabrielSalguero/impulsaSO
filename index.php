@@ -1,11 +1,28 @@
 <?php
 $loginError = $_GET['login_error'] ?? '';
+$registerError = $_GET['register_error'] ?? '';
+$registerOk = isset($_GET['register_ok']);
 $loginMessage = '';
+$registerMessage = '';
+$activeTab = 'login';
 
 if ($loginError === 'inactive') {
     $loginMessage = 'No tenes permiso para acceder, contactate con el administrador.';
 } elseif ($loginError === 'invalid') {
     $loginMessage = 'Usuario o contrasena incorrectos.';
+}
+
+if ($registerError === 'invalid') {
+    $registerMessage = 'Completa todos los campos y usa un correo valido. La contraseña debe tener al menos 8 caracteres.';
+    $activeTab = 'register';
+} elseif ($registerError === 'nomatch') {
+    $registerMessage = 'Las contraseñas no coinciden.';
+    $activeTab = 'register';
+} elseif ($registerError === 'exists') {
+    $registerMessage = 'Ese correo ya esta registrado.';
+    $activeTab = 'register';
+} elseif ($registerOk) {
+    $activeTab = 'login';
 }
 ?>
 <!DOCTYPE html>
@@ -332,6 +349,29 @@ if ($loginError === 'inactive') {
             font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
         }
 
+        .modal-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid var(--stroke);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--muted);
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .tab-btn.is-active {
+            color: var(--ink);
+            border-color: rgba(89, 242, 232, 0.6);
+            box-shadow: 0 0 0 2px rgba(89, 242, 232, 0.12);
+        }
+
         .close-btn {
             border: none;
             background: transparent;
@@ -373,6 +413,24 @@ if ($loginError === 'inactive') {
             color: #ffdede;
             margin-bottom: 12px;
             font-size: 0.9rem;
+        }
+
+        .success {
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: rgba(89, 242, 232, 0.12);
+            border: 1px solid rgba(89, 242, 232, 0.3);
+            color: #b6fff8;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.is-active {
+            display: block;
         }
 
         .modal-actions {
@@ -516,24 +574,70 @@ if ($loginError === 'inactive') {
                 <h3 id="login-title">Ingresar a ImpulsaSO</h3>
                 <button class="close-btn" type="button" aria-label="Cerrar" data-close-modal>✕</button>
             </div>
+            <div class="modal-tabs" role="tablist">
+                <button class="tab-btn" type="button" data-tab="login" role="tab">Ingresar</button>
+                <button class="tab-btn" type="button" data-tab="register" role="tab">Crear cuenta</button>
+            </div>
             <?php if ($loginMessage): ?>
                 <div class="error"><?= htmlspecialchars($loginMessage, ENT_QUOTES, 'UTF-8') ?></div>
             <?php endif; ?>
-            <form action="/auth/login.php" method="POST">
-                <div class="field">
-                    <label for="usuario">Usuario</label>
-                    <input type="text" id="usuario" name="usuario" placeholder="Ingresá tu usuario" required>
-                </div>
-                <div class="field password-wrap">
-                    <label for="contrasena">Contraseña</label>
-                    <input type="password" id="contrasena" name="contrasena" placeholder="Ingresá tu contraseña" required>
-                    <button class="toggle-password" type="button" aria-label="Mostrar contraseña" data-toggle-password>Mostrar</button>
-                </div>
-                <div class="modal-actions">
-                    <button class="btn btn-primary" type="submit">Entrar</button>
-                    <span class="helper">¿Problemas para entrar? Escribinos desde el panel de soporte.</span>
-                </div>
-            </form>
+            <?php if ($registerMessage): ?>
+                <div class="error"><?= htmlspecialchars($registerMessage, ENT_QUOTES, 'UTF-8') ?></div>
+            <?php endif; ?>
+            <?php if ($registerOk): ?>
+                <div class="success">Cuenta creada. Ya podes ingresar con tu correo.</div>
+            <?php endif; ?>
+            <div class="tab-panel" data-tab-panel="login">
+                <form action="/auth/login.php" method="POST">
+                    <input type="hidden" name="action" value="login">
+                    <div class="field">
+                        <label for="usuario_login">Usuario</label>
+                        <input type="text" id="usuario_login" name="usuario" placeholder="Ingresá tu usuario" required>
+                    </div>
+                    <div class="field password-wrap">
+                        <label for="contrasena_login">Contraseña</label>
+                        <input type="password" id="contrasena_login" name="contrasena"
+                            placeholder="Ingresá tu contraseña" required>
+                        <button class="toggle-password" type="button" aria-label="Mostrar contraseña"
+                            data-toggle-password data-target="contrasena_login">Mostrar</button>
+                    </div>
+                    <div class="modal-actions">
+                        <button class="btn btn-primary" type="submit">Entrar</button>
+                        <span class="helper">¿Problemas para entrar? Escribinos desde el panel de soporte.</span>
+                    </div>
+                </form>
+            </div>
+            <div class="tab-panel" data-tab-panel="register">
+                <form action="/auth/login.php" method="POST">
+                    <input type="hidden" name="action" value="register">
+                    <div class="field">
+                        <label for="nombre_reg">Nombre</label>
+                        <input type="text" id="nombre_reg" name="nombre" placeholder="Tu nombre completo" required>
+                    </div>
+                    <div class="field">
+                        <label for="correo_reg">Correo</label>
+                        <input type="email" id="correo_reg" name="correo" placeholder="tu@correo.com" required>
+                    </div>
+                    <div class="field password-wrap">
+                        <label for="contrasena_reg">Contraseña</label>
+                        <input type="password" id="contrasena_reg" name="contrasena" placeholder="Minimo 8 caracteres"
+                            required>
+                        <button class="toggle-password" type="button" aria-label="Mostrar contraseña"
+                            data-toggle-password data-target="contrasena_reg">Mostrar</button>
+                    </div>
+                    <div class="field password-wrap">
+                        <label for="contrasena_confirm">Verificar contraseña</label>
+                        <input type="password" id="contrasena_confirm" name="contrasena_confirm"
+                            placeholder="Repeti la contraseña" required>
+                        <button class="toggle-password" type="button" aria-label="Mostrar contraseña"
+                            data-toggle-password data-target="contrasena_confirm">Mostrar</button>
+                    </div>
+                    <div class="modal-actions">
+                        <button class="btn btn-primary" type="submit">Crear cuenta</button>
+                        <span class="helper">Usamos tu correo como usuario de acceso.</span>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -541,9 +645,12 @@ if ($loginError === 'inactive') {
         const modal = document.querySelector('[data-modal]');
         const openButtons = document.querySelectorAll('[data-open-modal]');
         const closeButtons = document.querySelectorAll('[data-close-modal]');
-        const togglePassword = document.querySelector('[data-toggle-password]');
-        const passwordField = document.getElementById('contrasena');
-        const hasError = <?= $loginMessage ? 'true' : 'false' ?>;
+        const title = document.getElementById('login-title');
+        const tabButtons = document.querySelectorAll('[data-tab]');
+        const tabPanels = document.querySelectorAll('[data-tab-panel]');
+        const toggleButtons = document.querySelectorAll('[data-toggle-password]');
+        const shouldOpen = <?= ($loginMessage || $registerMessage || $registerOk) ? 'true' : 'false' ?>;
+        const defaultTab = <?= json_encode($activeTab) ?>;
 
         const openModal = () => {
             if (!modal) return;
@@ -578,16 +685,39 @@ if ($loginError === 'inactive') {
             }
         });
 
-        if (togglePassword && passwordField) {
-            togglePassword.addEventListener('click', () => {
-                const isPassword = passwordField.getAttribute('type') === 'password';
-                passwordField.setAttribute('type', isPassword ? 'text' : 'password');
-                togglePassword.textContent = isPassword ? 'Ocultar' : 'Mostrar';
-                togglePassword.setAttribute('aria-label', isPassword ? 'Ocultar contraseña' : 'Mostrar contraseña');
+        const setTab = (tabName) => {
+            tabButtons.forEach(button => {
+                const isActive = button.dataset.tab === tabName;
+                button.classList.toggle('is-active', isActive);
             });
-        }
+            tabPanels.forEach(panel => {
+                const isActive = panel.dataset.tabPanel === tabName;
+                panel.classList.toggle('is-active', isActive);
+            });
+            if (title) {
+                title.textContent = tabName === 'register' ? 'Crear cuenta' : 'Ingresar a ImpulsaSO';
+            }
+        };
 
-        if (hasError) {
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => setTab(button.dataset.tab));
+        });
+
+        toggleButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const targetId = button.dataset.target;
+                const targetInput = targetId ? document.getElementById(targetId) : null;
+                if (!targetInput) return;
+                const isPassword = targetInput.getAttribute('type') === 'password';
+                targetInput.setAttribute('type', isPassword ? 'text' : 'password');
+                button.textContent = isPassword ? 'Ocultar' : 'Mostrar';
+                button.setAttribute('aria-label', isPassword ? 'Ocultar contraseña' : 'Mostrar contraseña');
+            });
+        });
+
+        setTab(defaultTab || 'login');
+
+        if (shouldOpen) {
             openModal();
         }
     </script>
