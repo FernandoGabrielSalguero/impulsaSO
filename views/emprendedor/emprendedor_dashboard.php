@@ -1,7 +1,6 @@
 <?php
 require_once __DIR__ . '/../../controllers/emprendedor_dashboardController.php';
 
-// Nombre de display: apodo > nombre > correo
 $displayName = $perfil['apodo'] ?? $perfil['nombre'] ?? $_SESSION['correo'] ?? 'Emprendedor';
 $displayName = htmlspecialchars((string) $displayName, ENT_QUOTES, 'UTF-8');
 
@@ -18,7 +17,6 @@ $correoVerificado = !empty($perfil['check_correo']);
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
 
-    <!-- Framework Impulsa desde CDN -->
     <link rel="stylesheet" href="https://framework.impulsagroup.com/assets/css/framework.css">
     <script src="https://framework.impulsagroup.com/assets/javascript/framework.js" defer></script>
 
@@ -44,16 +42,8 @@ $correoVerificado = !empty($perfil['check_correo']);
             text-transform: uppercase;
         }
 
-        .profile-info h2 {
-            margin: 0 0 4px;
-            font-size: 20px;
-        }
-
-        .profile-info p {
-            margin: 0;
-            font-size: 14px;
-            color: #6b7280;
-        }
+        .profile-info h2 { margin: 0 0 4px; font-size: 20px; }
+        .profile-info p  { margin: 0; font-size: 14px; color: #6b7280; }
 
         .badge {
             display: inline-flex;
@@ -64,62 +54,79 @@ $correoVerificado = !empty($perfil['check_correo']);
             font-size: 12px;
             font-weight: 600;
         }
+        .badge-success { background: #dcfce7; color: #15803d; }
+        .badge-warning { background: #fef3c7; color: #b45309; }
 
-        .badge-success {
-            background: #dcfce7;
-            color: #15803d;
+        /* ── Modal de perfil ── */
+        .perfil-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            padding: 24px;
         }
-
-        .badge-warning {
-            background: #fef3c7;
-            color: #b45309;
+        .perfil-overlay.is-open {
+            opacity: 1;
+            pointer-events: auto;
         }
-
-        .data-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 14px;
-            margin-top: 18px;
+        .perfil-box {
+            background: #fff;
+            border-radius: 18px;
+            padding: 26px;
+            width: min(440px, 100%);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.15);
         }
-
-        .data-item {
-            background: #f9fafb;
+        .perfil-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .perfil-header h3 { margin: 0; font-size: 17px; font-weight: 600; }
+        .perfil-field { margin-bottom: 16px; }
+        .perfil-field label {
+            display: block;
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 6px;
+        }
+        .perfil-field input {
+            width: 100%;
+            padding: 10px 12px;
             border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 14px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            outline: none;
+            box-sizing: border-box;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
+        .perfil-field input:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+        }
+        .perfil-feedback {
+            display: none;
+            padding: 10px 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            margin-bottom: 14px;
+        }
+        .perfil-feedback.ok    { background: #dcfce7; color: #15803d; }
+        .perfil-feedback.error { background: #fee2e2; color: #b91c1c; }
 
-        .data-item .label {
-            font-size: 12px;
-            color: #9ca3af;
-            margin-bottom: 4px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .data-item .value {
-            font-size: 15px;
-            font-weight: 600;
-            color: #111827;
-        }
-
-        .data-item .value.empty {
-            color: #d1d5db;
-            font-weight: 400;
-            font-style: italic;
-        }
-
-        .section-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #374151;
-            margin: 0 0 14px;
-        }
+        /* Botón de perfil en navbar */
+        .navbar { justify-content: space-between; }
+        .navbar-left { display: flex; align-items: center; gap: 8px; }
     </style>
 </head>
 
 <body>
-
     <div class="layout">
 
         <!-- SIDEBAR -->
@@ -128,7 +135,6 @@ $correoVerificado = !empty($perfil['check_correo']);
                 <span class="material-icons logo-icon">rocket_launch</span>
                 <span class="logo-text">Impulsa</span>
             </div>
-
             <nav class="sidebar-menu">
                 <ul>
                     <li onclick="location.href='emprendedor_dashboard.php'">
@@ -141,7 +147,6 @@ $correoVerificado = !empty($perfil['check_correo']);
                     </li>
                 </ul>
             </nav>
-
             <div class="sidebar-footer">
                 <button class="btn-icon" onclick="toggleSidebar()">
                     <span class="material-icons" id="collapseIcon">chevron_left</span>
@@ -154,10 +159,15 @@ $correoVerificado = !empty($perfil['check_correo']);
 
             <!-- NAVBAR -->
             <header class="navbar">
-                <button class="btn-icon" onclick="toggleSidebar()">
-                    <span class="material-icons">menu</span>
+                <div class="navbar-left">
+                    <button class="btn-icon" onclick="toggleSidebar()">
+                        <span class="material-icons">menu</span>
+                    </button>
+                    <div class="navbar-title">Mi espacio</div>
+                </div>
+                <button class="btn-icon" id="btn-perfil" aria-label="Mi perfil" title="Mi perfil">
+                    <span class="material-icons">account_circle</span>
                 </button>
-                <div class="navbar-title">Mi espacio</div>
             </header>
 
             <!-- CONTENIDO -->
@@ -171,12 +181,12 @@ $correoVerificado = !empty($perfil['check_correo']);
                             <h2>Hola, <?= $displayName ?></h2>
                             <p><?= htmlspecialchars($perfil['correo'] ?? $_SESSION['correo'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
                             <?php if ($correoVerificado): ?>
-                                <span class="badge badge-success">
+                                <span class="badge badge-success" style="margin-top:6px">
                                     <span class="material-icons" style="font-size:14px">verified</span>
                                     Correo verificado
                                 </span>
                             <?php else: ?>
-                                <span class="badge badge-warning">
+                                <span class="badge badge-warning" style="margin-top:6px">
                                     <span class="material-icons" style="font-size:14px">warning</span>
                                     Correo sin verificar
                                 </span>
@@ -185,40 +195,53 @@ $correoVerificado = !empty($perfil['check_correo']);
                     </div>
                 </div>
 
-                <!-- Datos del perfil -->
-                <div class="card">
-                    <p class="section-title">Datos de perfil</p>
-                    <div class="data-grid">
-                        <?php
-                        $campos = [
-                            'Nombre'            => $perfil['nombre']           ?? null,
-                            'Apellido'          => $perfil['apellido']         ?? null,
-                            'Apodo'             => $perfil['apodo']            ?? null,
-                            'Fecha de nacimiento' => $perfil['fecha_nacimiento'] ?? null,
-                            'Rol'               => $perfil['rol']              ?? $_SESSION['rol'] ?? null,
-                            'Miembro desde'     => isset($perfil['created_at'])
-                                                    ? date('d/m/Y', strtotime($perfil['created_at']))
-                                                    : null,
-                        ];
-                        foreach ($campos as $label => $value): ?>
-                            <div class="data-item">
-                                <div class="label"><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></div>
-                                <?php if ($value !== null && $value !== ''): ?>
-                                    <div class="value"><?= htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8') ?></div>
-                                <?php else: ?>
-                                    <div class="value empty">Sin completar</div>
-                                <?php endif; ?>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-
             </section>
         </div>
     </div>
 
+    <!-- MODAL DE PERFIL -->
+    <div class="perfil-overlay" id="modal-perfil" aria-hidden="true">
+        <div class="perfil-box" role="dialog" aria-labelledby="perfil-title">
+            <div class="perfil-header">
+                <h3 id="perfil-title">Mi perfil</h3>
+                <button class="btn-icon" id="btn-cerrar-perfil" aria-label="Cerrar">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+            <div class="perfil-feedback" id="perfil-feedback"></div>
+            <form id="form-perfil" novalidate>
+                <div class="perfil-field">
+                    <label for="p-nombre">Nombre</label>
+                    <input id="p-nombre" type="text" name="nombre"
+                        value="<?= htmlspecialchars($perfil['nombre'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                        placeholder="Tu nombre">
+                </div>
+                <div class="perfil-field">
+                    <label for="p-apellido">Apellido</label>
+                    <input id="p-apellido" type="text" name="apellido"
+                        value="<?= htmlspecialchars($perfil['apellido'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                        placeholder="Tu apellido">
+                </div>
+                <div class="perfil-field">
+                    <label for="p-apodo">Apodo</label>
+                    <input id="p-apodo" type="text" name="apodo"
+                        value="<?= htmlspecialchars($perfil['apodo'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                        placeholder="Apodo o nombre de marca">
+                </div>
+                <div class="perfil-field">
+                    <label for="p-fecha">Fecha de nacimiento</label>
+                    <input id="p-fecha" type="date" name="fecha_nacimiento"
+                        value="<?= htmlspecialchars($perfil['fecha_nacimiento'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                </div>
+                <button class="btn btn-primary" type="submit" id="btn-guardar-perfil" style="width:100%">
+                    Guardar cambios
+                </button>
+            </form>
+        </div>
+    </div>
+
     <script>
-        // Log de sesión en consola
+        // Sesión en consola
         const sesion = {
             user_id:          <?= json_encode($_SESSION['user_id']          ?? null) ?>,
             correo:           <?= json_encode($_SESSION['correo']           ?? null) ?>,
@@ -231,8 +254,68 @@ $correoVerificado = !empty($perfil['check_correo']);
         console.group('[Impulsa] Sesión activa');
         console.table(sesion);
         console.groupEnd();
-    </script>
 
+        // ── Modal de perfil ──
+        const modalPerfil    = document.getElementById('modal-perfil');
+        const btnPerfil      = document.getElementById('btn-perfil');
+        const btnCerrar      = document.getElementById('btn-cerrar-perfil');
+        const formPerfil     = document.getElementById('form-perfil');
+        const perfilFeedback = document.getElementById('perfil-feedback');
+        const btnGuardar     = document.getElementById('btn-guardar-perfil');
+
+        const abrirModal = () => {
+            modalPerfil.classList.add('is-open');
+            modalPerfil.setAttribute('aria-hidden', 'false');
+            document.getElementById('p-nombre').focus();
+        };
+
+        const cerrarModal = () => {
+            modalPerfil.classList.remove('is-open');
+            modalPerfil.setAttribute('aria-hidden', 'true');
+            perfilFeedback.className = 'perfil-feedback';
+            perfilFeedback.style.display = 'none';
+        };
+
+        btnPerfil.addEventListener('click', abrirModal);
+        btnCerrar.addEventListener('click', cerrarModal);
+        modalPerfil.addEventListener('click', (e) => { if (e.target === modalPerfil) cerrarModal(); });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modalPerfil.classList.contains('is-open')) cerrarModal();
+        });
+
+        formPerfil.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            btnGuardar.disabled = true;
+            btnGuardar.textContent = 'Guardando...';
+            perfilFeedback.style.display = 'none';
+
+            try {
+                const res  = await fetch('/controllers/perfil_controller.php', {
+                    method: 'POST',
+                    body: new FormData(formPerfil),
+                });
+                const data = await res.json();
+
+                if (data.ok) {
+                    perfilFeedback.className = 'perfil-feedback ok';
+                    perfilFeedback.textContent = 'Perfil guardado correctamente.';
+                    perfilFeedback.style.display = 'block';
+                    setTimeout(cerrarModal, 1400);
+                } else {
+                    perfilFeedback.className = 'perfil-feedback error';
+                    perfilFeedback.textContent = data.error ?? 'Error al guardar.';
+                    perfilFeedback.style.display = 'block';
+                }
+            } catch {
+                perfilFeedback.className = 'perfil-feedback error';
+                perfilFeedback.textContent = 'Error de conexión. Intentá de nuevo.';
+                perfilFeedback.style.display = 'block';
+            } finally {
+                btnGuardar.disabled = false;
+                btnGuardar.textContent = 'Guardar cambios';
+            }
+        });
+    </script>
 </body>
 
 </html>
