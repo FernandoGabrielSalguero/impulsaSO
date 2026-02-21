@@ -109,6 +109,34 @@ class AuthModel
     }
 
     // -------------------------------------------------------------------------
+    // Perfil de sesión
+    // -------------------------------------------------------------------------
+
+    /**
+     * Devuelve nombre, apellido, apodo y fecha_nacimiento para poblar la sesión.
+     *
+     * @return array{nombre: string|null, apellido: string|null, apodo: string|null, fecha_nacimiento: string|null}
+     */
+    public function obtenerInfoPerfil(int $userId): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT ui.nombre, ui.apellido, ui.apodo, ui.fecha_nacimiento
+             FROM user_info ui
+             WHERE ui.user_auth_id = :id
+             LIMIT 1"
+        );
+        $stmt->execute(['id' => $userId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return [
+            'nombre'           => $row['nombre']           ?? null,
+            'apellido'         => $row['apellido']         ?? null,
+            'apodo'            => $row['apodo']            ?? null,
+            'fecha_nacimiento' => $row['fecha_nacimiento'] ?? null,
+        ];
+    }
+
+    // -------------------------------------------------------------------------
     // Verificación de correo
     // -------------------------------------------------------------------------
 

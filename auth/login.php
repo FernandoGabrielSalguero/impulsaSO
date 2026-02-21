@@ -128,10 +128,17 @@ if (!$result['verificado']) {
     exit;
 }
 
-// Sesión
+// Sesión base
 $_SESSION['user_id'] = $result['id'];
 $_SESSION['correo']  = $result['correo'];
 $_SESSION['rol']     = $result['rol'];
+
+// Sesión extendida — datos de perfil
+$perfil = $auth->obtenerInfoPerfil($result['id']);
+$_SESSION['nombre']           = $perfil['nombre'];
+$_SESSION['apellido']         = $perfil['apellido'];
+$_SESSION['apodo']            = $perfil['apodo'];
+$_SESSION['fecha_nacimiento'] = $perfil['fecha_nacimiento'];
 
 registrarAuditoria($pdo, [
     'evento'        => 'login_ok',
