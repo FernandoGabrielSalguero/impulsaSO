@@ -1,89 +1,170 @@
 <?php
 
-require_once __DIR__ . '/../config.php';
-
 class AuthModel
 {
-    private $db;
+    private PDO $db;
 
-    public function __construct($pdo)
+    public function __construct(PDO $pdo)
     {
         $this->db = $pdo;
     }
 
-    public function login($usuario, $contrasenaIngresada)
+    // -------------------------------------------------------------------------
+    // Registro
+    // -------------------------------------------------------------------------
+
+    /**
+     * Registra un nuevo usuario en user_auth, user_info y user_contacto.
+     *
+     * @return array{ok: true,  id: int, correo: string, token: string}
+     *       | array{ok: false, error: 'exists'|'db_error'}
+     */
+    public function registrar(string $correo, string $password): array
     {
-        $sql = "SELECT 
-            Id,
-            Usuario,
-            Contrasena,
-            Rol,
-            Estado,
-            Nombre,
-            Correo,
-            Telefono,
-            Saldo
-            FROM Usuarios
-            WHERE Usuario = :usuario
-            LIMIT 1";
+        $correo = strtolower(trim($correo));
 
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute(['usuario' => $usuario]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if (!$user) {
-            return null;
-        }
-        if (($user['Estado'] ?? '') !== 'activo') {
-            return ['error' => 'inactive'];
+        $stmt = $this->db->prepare(
+            "SELECT id FROM user_auth WHERE correo = :correo LIMIT 1"
+        );
+        $stmt->execute(['correo' => $correo]);
+        if ($stmt->fetch()) {
+            return ['ok' => false, 'error' => 'exists'];
         }
 
-        $hash = $user['Contrasena'] ?? '';
-        $isHashed = preg_match('/^\$2y\$/', $hash);
+        $hash  = password_hash($password, PASSWORD_BCRYPT);
+        $token = bin2hex(random_bytes(32)); // 64 chars hex, criptográficamente seguro
 
-        if (
-            (!$isHashed && $hash === $contrasenaIngresada) ||
-            ($isHashed && password_verify($contrasenaIngresada, $hash))
-        ) {
-            return $user;
+        try {
+            $this->db->beginTransaction();
+
+            // 1. Credenciales
+            $stmt = $this->db->prepare(
+                "INSERT INTO user_auth (correo, password, rol, verification_token)
+                 VALUES (:correo, :password, 'impulsa_emprendedor', :token)"
+            );
+            $stmt->execute([
+                'correo'   => $correo,
+                'password' => $hash,
+                'token'    => $token,
+            ]);
+            $userId = (int) $this->db->lastInsertId();
+
+            // 2. Perfil vacío — se completa en el onboarding
+            $stmt = $this->db->prepare(
+                "INSERT INTO user_info (user_auth_id) VALUES (:id)"
+            );
+            $stmt->execute(['id' => $userId]);
+
+            // 3. Contacto — correo espejado, verificación pendiente
+            $stmt = $this->db->prepare(
+                "INSERT INTO user_contacto (user_auth_id, correo, check_correo)
+                 VALUES (:id, :correo, 0)"
+            );
+            $stmt->execute(['id' => $userId, 'correo' => $correo]);
+
+            $this->db->commit();
+
+            return ['ok' => true, 'id' => $userId, 'correo' => $correo, 'token' => $token];
+
+        } catch (\Throwable) {
+            $this->db->rollBack();
+            return ['ok' => false, 'error' => 'db_error'];
         }
-
-        return null;
     }
 
-    public function register($nombre, $correo, $contrasena, $rol = 'representante')
-    {
-        $correo = trim((string) $correo);
-        $usuario = $correo;
+    // -------------------------------------------------------------------------
+    // Login
+    // -------------------------------------------------------------------------
 
-        $existsSql = "SELECT Id FROM Usuarios WHERE Correo = :correo OR Usuario = :usuario LIMIT 1";
-        $existsStmt = $this->db->prepare($existsSql);
-        $existsStmt->execute([
-            'correo' => $correo,
-            'usuario' => $usuario,
-        ]);
-        if ($existsStmt->fetch(PDO::FETCH_ASSOC)) {
-            return ['error' => 'exists'];
+    /**
+     * Autentica al usuario por correo y contraseña.
+     *
+     * @return array{ok: true,  id: int, correo: string, rol: string, verificado: bool}
+     *       | array{ok: false, error: 'invalid'}
+     */
+    public function login(string $correo, string $password): array
+    {
+        $correo = strtolower(trim($correo));
+
+        $stmt = $this->db->prepare(
+            "SELECT id, correo, password, rol, email_verified_at
+             FROM user_auth
+             WHERE correo = :correo
+             LIMIT 1"
+        );
+        $stmt->execute(['correo' => $correo]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$user || !password_verify($password, (string) $user['password'])) {
+            return ['ok' => false, 'error' => 'invalid'];
         }
 
-        $hash = password_hash($contrasena, PASSWORD_BCRYPT);
-        $sql = "INSERT INTO Usuarios (Nombre, Usuario, Correo, Contrasena, Rol, Estado)
-                VALUES (:nombre, :usuario, :correo, :contrasena, :rol, 'activo')";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([
-            'nombre' => $nombre,
-            'usuario' => $usuario,
-            'correo' => $correo,
-            'contrasena' => $hash,
-            'rol' => $rol,
-        ]);
-
         return [
-            'id' => $this->db->lastInsertId(),
-            'usuario' => $usuario,
-            'correo' => $correo,
-            'rol' => $rol,
+            'ok'         => true,
+            'id'         => (int) $user['id'],
+            'correo'     => (string) $user['correo'],
+            'rol'        => (string) $user['rol'],
+            'verificado' => $user['email_verified_at'] !== null,
         ];
     }
 
+    // -------------------------------------------------------------------------
+    // Verificación de correo
+    // -------------------------------------------------------------------------
+
+    /**
+     * Valida el token y activa el correo del usuario.
+     *
+     * @return array{ok: true,  id: int}
+     *       | array{ok: false, error: 'invalid_token'|'already_verified'|'db_error'}
+     */
+    public function verificarToken(string $token): array
+    {
+        if ($token === '') {
+            return ['ok' => false, 'error' => 'invalid_token'];
+        }
+
+        $stmt = $this->db->prepare(
+            "SELECT id, email_verified_at
+             FROM user_auth
+             WHERE verification_token = :token
+             LIMIT 1"
+        );
+        $stmt->execute(['token' => $token]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$user) {
+            return ['ok' => false, 'error' => 'invalid_token'];
+        }
+
+        if ($user['email_verified_at'] !== null) {
+            return ['ok' => false, 'error' => 'already_verified'];
+        }
+
+        $userId = (int) $user['id'];
+
+        try {
+            $this->db->beginTransaction();
+
+            $stmt = $this->db->prepare(
+                "UPDATE user_auth
+                 SET email_verified_at = NOW(), verification_token = NULL
+                 WHERE id = :id"
+            );
+            $stmt->execute(['id' => $userId]);
+
+            $stmt = $this->db->prepare(
+                "UPDATE user_contacto SET check_correo = 1 WHERE user_auth_id = :id"
+            );
+            $stmt->execute(['id' => $userId]);
+
+            $this->db->commit();
+
+            return ['ok' => true, 'id' => $userId];
+
+        } catch (\Throwable) {
+            $this->db->rollBack();
+            return ['ok' => false, 'error' => 'db_error'];
+        }
+    }
 }

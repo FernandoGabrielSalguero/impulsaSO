@@ -1,23 +1,21 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
 
-if (session_status() === PHP_SESSION_NONE) {
-    ini_set('session.gc_maxlifetime', 31536000); // 1 anio
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path' => '/',
-        'domain' => '',
-        'secure' => isset($_SERVER['HTTPS']),
-        'httponly' => true,
-        'samesite' => 'Lax'
-    ]);
-    session_start();
-}
+ini_set('session.gc_maxlifetime', 31536000);
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path'     => '/',
+    'domain'   => '',
+    'secure'   => isset($_SERVER['HTTPS']),
+    'httponly' => true,
+    'samesite' => 'Lax',
+]);
+session_start();
 
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/AuthModel.php';
+
+use SVE\Mail\Mailer;
+require_once __DIR__ . '/../mail/Mail.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: /index.php');
@@ -25,150 +23,133 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $action = $_POST['action'] ?? 'login';
-$auth = new AuthModel($pdo);
+$auth   = new AuthModel($pdo);
 
+// =========================================================================
+// REGISTRO
+// =========================================================================
 if ($action === 'register') {
-    $nombre = trim($_POST['nombre'] ?? '');
-    $correo = trim($_POST['correo'] ?? '');
-    $contrasena = (string)($_POST['contrasena'] ?? '');
-    $contrasenaConfirm = (string)($_POST['contrasena_confirm'] ?? '');
+    $correo          = trim((string)($_POST['correo']            ?? ''));
+    $password        = (string)($_POST['contrasena']             ?? '');
+    $passwordConfirm = (string)($_POST['contrasena_confirm']     ?? '');
 
-    $isValidEmail = filter_var($correo, FILTER_VALIDATE_EMAIL);
-    $hasValidPassword = strlen($contrasena) >= 8;
-
-    if ($nombre === '' || !$isValidEmail || !$hasValidPassword) {
+    if (!filter_var($correo, FILTER_VALIDATE_EMAIL) || strlen($password) < 8) {
         registrarAuditoria($pdo, [
             'evento' => 'register_error',
             'estado' => 'invalid',
-            'datos' => [
-                'correo' => $correo,
-            ],
+            'datos'  => ['correo' => $correo],
         ]);
         header('Location: /index.php?register_error=invalid');
         exit;
     }
 
-    if ($contrasena !== $contrasenaConfirm) {
+    if ($password !== $passwordConfirm) {
         registrarAuditoria($pdo, [
             'evento' => 'register_error',
             'estado' => 'nomatch',
-            'datos' => [
-                'correo' => $correo,
-            ],
+            'datos'  => ['correo' => $correo],
         ]);
         header('Location: /index.php?register_error=nomatch');
         exit;
     }
 
-    $register = $auth->register($nombre, $correo, $contrasena);
-    if (is_array($register) && isset($register['error'])) {
+    $result = $auth->registrar($correo, $password);
+
+    if (!$result['ok']) {
         registrarAuditoria($pdo, [
             'evento' => 'register_error',
-            'estado' => $register['error'],
-            'datos' => [
-                'correo' => $correo,
-            ],
+            'estado' => $result['error'],
+            'datos'  => ['correo' => $correo],
         ]);
-        $errorKey = $register['error'] === 'exists' ? 'exists' : 'invalid';
+        $errorKey = $result['error'] === 'exists' ? 'exists' : 'invalid';
         header('Location: /index.php?register_error=' . $errorKey);
         exit;
     }
 
+    // Enviar correo de verificación
+    $appUrl    = rtrim((string)(getenv('APP_URL') ?: ''), '/');
+    $verifyUrl = $appUrl . '/auth/verificar.php?token=' . urlencode($result['token']);
+
+    Mailer::enviarVerificacionCorreo([
+        'correo'       => $result['correo'],
+        'link'         => $verifyUrl,
+        'user_auth_id' => $result['id'],
+    ]);
+
     registrarAuditoria($pdo, [
-        'evento' => 'register_ok',
-        'estado' => 'ok',
-        'usuario_id' => $register['id'] ?? null,
-        'usuario_login' => $register['usuario'] ?? null,
-        'rol' => $register['rol'] ?? null,
+        'evento'        => 'register_ok',
+        'estado'        => 'ok',
+        'usuario_id'    => $result['id'],
+        'usuario_login' => $result['correo'],
+        'rol'           => 'impulsa_emprendedor',
     ]);
 
     header('Location: /index.php?register_ok=1');
     exit;
 }
 
-$usuario = trim($_POST['usuario'] ?? '');
-$contrasena = (string)($_POST['contrasena'] ?? '');
+// =========================================================================
+// LOGIN
+// =========================================================================
+$correo   = trim((string)($_POST['correo']    ?? ''));
+$password = (string)($_POST['contrasena']     ?? '');
 
-if ($usuario === '' || $contrasena === '') {
+if ($correo === '' || $password === '') {
     registrarAuditoria($pdo, [
         'evento' => 'login_error',
         'estado' => 'invalid',
-        'datos' => [
-            'usuario' => $usuario,
-        ],
+        'datos'  => ['correo' => $correo],
     ]);
     header('Location: /index.php?login_error=invalid');
     exit;
 }
 
-$user = $auth->login($usuario, $contrasena);
+$result = $auth->login($correo, $password);
 
-if (is_array($user) && isset($user['error'])) {
+if (!$result['ok']) {
     registrarAuditoria($pdo, [
         'evento' => 'login_error',
-        'estado' => $user['error'],
-        'datos' => [
-            'usuario' => $usuario,
-        ],
+        'estado' => $result['error'],
+        'datos'  => ['correo' => $correo],
     ]);
-
-    if ($user['error'] === 'inactive') {
-        header('Location: /index.php?login_error=inactive');
-        exit;
-    }
-
     header('Location: /index.php?login_error=invalid');
     exit;
 }
 
-if ($user) {
-    $_SESSION['usuario_id'] = $user['Id'];
-    $_SESSION['usuario'] = $user['Usuario'];
-    $_SESSION['nombre'] = $user['Nombre'];
-    $_SESSION['correo'] = $user['Correo'];
-    $_SESSION['telefono'] = $user['Telefono'];
-    $_SESSION['rol'] = $user['Rol'];
-    $_SESSION['estado'] = $user['Estado'];
-    $_SESSION['saldo'] = $user['Saldo'] ?? 0.00;
-
+// Correo sin verificar — no puede ingresar
+if (!$result['verificado']) {
     registrarAuditoria($pdo, [
-        'evento' => 'login_ok',
-        'estado' => 'ok',
-        'usuario_id' => $user['Id'],
-        'usuario_login' => $user['Usuario'],
-        'rol' => $user['Rol'],
+        'evento'        => 'login_error',
+        'estado'        => 'unverified',
+        'usuario_id'    => $result['id'],
+        'usuario_login' => $result['correo'],
     ]);
-
-    switch ($user['Rol']) {
-        case 'administrador':
-            header('Location: /views/admin/admin_dashboard.php');
-            break;
-        case 'cocina':
-            header('Location: /views/cocina/cocina_dashboard.php');
-            break;
-        case 'cuyo_placa':
-            header('Location: /views/cuyo_placas/cuyo_placa_dashboard.php');
-            break;
-        case 'papas':
-            header('Location: /views/papa/papa_dashboard.php');
-            break;
-        case 'representante':
-            header('Location: /views/representante/representante_dashboard.php');
-            break;
-        default:
-            die('Rol no reconocido: ' . $user['Rol']);
-    }
-
+    header('Location: /index.php?login_error=unverified');
     exit;
 }
 
+// Sesión
+$_SESSION['user_id'] = $result['id'];
+$_SESSION['correo']  = $result['correo'];
+$_SESSION['rol']     = $result['rol'];
+
 registrarAuditoria($pdo, [
-    'evento' => 'login_error',
-    'estado' => 'invalid',
-    'datos' => [
-        'usuario' => $usuario,
-    ],
+    'evento'        => 'login_ok',
+    'estado'        => 'ok',
+    'usuario_id'    => $result['id'],
+    'usuario_login' => $result['correo'],
+    'rol'           => $result['rol'],
 ]);
 
-header('Location: /index.php?login_error=invalid');
+// Routing por rol
+switch ($result['rol']) {
+    case 'impulsa_administrador':
+        header('Location: /views/admin/admin_dashboard.php');
+        break;
+    case 'impulsa_emprendedor':
+        header('Location: /views/emprendedor/emprendedor_dashboard.php');
+        break;
+    default:
+        header('Location: /index.php?login_error=invalid');
+}
 exit;

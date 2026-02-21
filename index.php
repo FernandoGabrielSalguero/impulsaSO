@@ -1,27 +1,48 @@
 <?php
-$loginError = $_GET['login_error'] ?? '';
+$loginError    = $_GET['login_error']    ?? '';
 $registerError = $_GET['register_error'] ?? '';
-$registerOk = isset($_GET['register_ok']);
-$loginMessage = '';
-$registerMessage = '';
-$activeTab = 'login';
+$verifyError   = $_GET['verify_error']   ?? '';
+$registerOk    = isset($_GET['register_ok']);
+$verifyOk      = isset($_GET['verify_ok']);
 
-if ($loginError === 'inactive') {
-    $loginMessage = 'No tenes permiso para acceder, contactate con el administrador.';
-} elseif ($loginError === 'invalid') {
-    $loginMessage = 'Usuario o contrasena incorrectos.';
+$loginMessage    = '';
+$registerMessage = '';
+$successMessage  = '';
+$activeTab       = 'login';
+
+// Errores de login
+if ($loginError === 'invalid') {
+    $loginMessage = 'Correo o contraseña incorrectos.';
+} elseif ($loginError === 'unverified') {
+    $loginMessage = 'Tenés que verificar tu correo antes de ingresar. Revisá tu bandeja de entrada.';
 }
 
+// Errores de registro
 if ($registerError === 'invalid') {
-    $registerMessage = 'Completa todos los campos y usa un correo valido. La contraseña debe tener al menos 8 caracteres.';
+    $registerMessage = 'Ingresá un correo válido. La contraseña debe tener al menos 8 caracteres.';
     $activeTab = 'register';
 } elseif ($registerError === 'nomatch') {
     $registerMessage = 'Las contraseñas no coinciden.';
     $activeTab = 'register';
 } elseif ($registerError === 'exists') {
-    $registerMessage = 'Ese correo ya esta registrado.';
+    $registerMessage = 'Ese correo ya está registrado.';
     $activeTab = 'register';
-} elseif ($registerOk) {
+}
+
+// Estados de verificación de correo
+if ($verifyOk) {
+    $successMessage = 'Tu correo fue verificado correctamente. Ya podés ingresar.';
+    $activeTab = 'login';
+} elseif ($verifyError === 'already_verified') {
+    $successMessage = 'Tu correo ya estaba verificado. Podés ingresar normalmente.';
+    $activeTab = 'login';
+} elseif ($verifyError === 'invalid_token') {
+    $loginMessage = 'El enlace de verificación no es válido o ya expiró. Intentá registrarte nuevamente.';
+}
+
+// Registro exitoso
+if ($registerOk) {
+    $successMessage = 'Cuenta creada. Revisá tu correo para verificar tu cuenta antes de ingresar.';
     $activeTab = 'login';
 }
 ?>
@@ -578,21 +599,21 @@ if ($registerError === 'invalid') {
                 <button class="tab-btn" type="button" data-tab="login" role="tab">Ingresar</button>
                 <button class="tab-btn" type="button" data-tab="register" role="tab">Crear cuenta</button>
             </div>
+            <?php if ($successMessage): ?>
+                <div class="success"><?= htmlspecialchars($successMessage, ENT_QUOTES, 'UTF-8') ?></div>
+            <?php endif; ?>
             <?php if ($loginMessage): ?>
                 <div class="error"><?= htmlspecialchars($loginMessage, ENT_QUOTES, 'UTF-8') ?></div>
             <?php endif; ?>
             <?php if ($registerMessage): ?>
                 <div class="error"><?= htmlspecialchars($registerMessage, ENT_QUOTES, 'UTF-8') ?></div>
             <?php endif; ?>
-            <?php if ($registerOk): ?>
-                <div class="success">Cuenta creada. Ya podes ingresar con tu correo.</div>
-            <?php endif; ?>
             <div class="tab-panel" data-tab-panel="login">
                 <form action="/auth/login.php" method="POST">
                     <input type="hidden" name="action" value="login">
                     <div class="field">
-                        <label for="usuario_login">Usuario</label>
-                        <input type="text" id="usuario_login" name="usuario" placeholder="Ingresá tu usuario" required>
+                        <label for="correo_login">Correo</label>
+                        <input type="email" id="correo_login" name="correo" placeholder="tu@correo.com" required>
                     </div>
                     <div class="field password-wrap">
                         <label for="contrasena_login">Contraseña</label>
@@ -610,10 +631,6 @@ if ($registerError === 'invalid') {
             <div class="tab-panel" data-tab-panel="register">
                 <form action="/auth/login.php" method="POST">
                     <input type="hidden" name="action" value="register">
-                    <div class="field">
-                        <label for="nombre_reg">Nombre</label>
-                        <input type="text" id="nombre_reg" name="nombre" placeholder="Tu nombre completo" required>
-                    </div>
                     <div class="field">
                         <label for="correo_reg">Correo</label>
                         <input type="email" id="correo_reg" name="correo" placeholder="tu@correo.com" required>
@@ -649,7 +666,7 @@ if ($registerError === 'invalid') {
         const tabButtons = document.querySelectorAll('[data-tab]');
         const tabPanels = document.querySelectorAll('[data-tab-panel]');
         const toggleButtons = document.querySelectorAll('[data-toggle-password]');
-        const shouldOpen = <?= ($loginMessage || $registerMessage || $registerOk) ? 'true' : 'false' ?>;
+        const shouldOpen = <?= ($loginMessage || $registerMessage || $successMessage) ? 'true' : 'false' ?>;
         const defaultTab = <?= json_encode($activeTab) ?>;
 
         const openModal = () => {
