@@ -42,7 +42,19 @@ $yaFactura          = !empty($request['ya_factura']);
             border-radius: 18px;
             padding: 28px;
             box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-            max-width: 700px;
+        }
+
+        /* Grid principal del formulario: 2 columnas */
+        .lp-form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0 32px;
+        }
+        .lp-col-full { grid-column: 1 / -1; }
+
+        @media (max-width: 700px) {
+            .lp-form-grid { grid-template-columns: 1fr; }
+            .lp-col-full  { grid-column: 1; }
         }
 
         .lp-section-label {
@@ -253,167 +265,175 @@ $yaFactura          = !empty($request['ya_factura']);
                             : 'Completá la información sobre tu emprendimiento para solicitar tu landing page.' ?>
                     </p>
 
-                    <div class="lp-feedback" id="lp-feedback"></div>
-
                     <form id="form-landing" novalidate>
+                    <div class="lp-feedback" id="lp-feedback"></div>
+                    <div class="lp-form-grid">
 
-                        <p class="lp-section-label">Datos del emprendimiento</p>
-
-                        <div class="lp-field">
-                            <label for="lp-nombre-emp">Nombre del emprendimiento</label>
-                            <input id="lp-nombre-emp" type="text" name="nombre_emprendimiento"
-                                value="<?= $val('nombre_emprendimiento') ?>"
-                                placeholder="Ej: Café del Sur">
-                        </div>
-
-                        <div class="lp-field">
-                            <label for="lp-fecha">Fecha de inicio del emprendimiento</label>
-                            <input id="lp-fecha" type="date" name="fecha_inicio"
-                                value="<?= $val('fecha_inicio') ?>">
-                        </div>
-
-                        <div class="lp-field">
-                            <label for="lp-desc">Descripción</label>
-                            <textarea id="lp-desc" name="descripcion"
-                                placeholder="Contanos de qué trata tu emprendimiento..."><?= $val('descripcion') ?></textarea>
-                        </div>
-
-                        <div class="lp-field">
-                            <label for="lp-fundador">Nombre del fundador</label>
-                            <input id="lp-fundador" type="text" name="nombre_fundador"
-                                value="<?= $val('nombre_fundador', $request['perfil_nombre'] ?? '') ?>"
-                                placeholder="Tu nombre completo">
-                        </div>
-
-                        <p class="lp-section-label">¿Qué ofrecés?</p>
-
-                        <div class="lp-field">
-                            <div class="lp-check-row">
-                                <label class="lp-check-item">
-                                    <input type="checkbox" name="vende_productos" value="1"
-                                        <?= $vendeProductos ? 'checked' : '' ?>>
-                                    Productos
-                                </label>
-                                <label class="lp-check-item">
-                                    <input type="checkbox" name="vende_servicios" value="1"
-                                        <?= $vendeServicios ? 'checked' : '' ?>>
-                                    Servicios
-                                </label>
-                            </div>
-                        </div>
-
-                        <p class="lp-section-label">Situación actual</p>
-
-                        <div class="lp-field">
-                            <label class="lp-toggle">
-                                <span class="lp-toggle-text">¿Ya facturás?</span>
-                                <span class="toggle-switch">
-                                    <input type="checkbox" id="toggle-factura" name="ya_factura" value="1"
-                                        <?= $yaFactura ? 'checked' : '' ?>>
-                                    <span class="toggle-slider"></span>
-                                </span>
-                            </label>
-                        </div>
-
-                        <div class="lp-field">
-                            <label for="lp-colaboradores">Cantidad de colaboradores</label>
-                            <input id="lp-colaboradores" type="number" name="cantidad_colaboradores"
-                                value="<?= $val('cantidad_colaboradores', '0') ?>"
-                                min="0" placeholder="0">
-                        </div>
-
-                        <p class="lp-section-label">Infraestructura web</p>
-
-                        <div class="lp-field">
-                            <label class="lp-toggle">
-                                <span class="lp-toggle-text">¿Tenés dominio registrado?</span>
-                                <span class="toggle-switch">
-                                    <input type="checkbox" name="dominio_registrado" value="1"
-                                        <?= $dominioReg ? 'checked' : '' ?>>
-                                    <span class="toggle-slider"></span>
-                                </span>
-                            </label>
-                        </div>
-
-                        <div class="lp-field">
-                            <label class="lp-toggle">
-                                <span class="lp-toggle-text">¿Tenés hosting propio?</span>
-                                <span class="toggle-switch">
-                                    <input type="checkbox" name="hosting_propio" value="1"
-                                        <?= $hostingPropio ? 'checked' : '' ?>>
-                                    <span class="toggle-slider"></span>
-                                </span>
-                            </label>
-                        </div>
-
-                        <p class="lp-section-label">Espacio físico</p>
-
-                        <div class="lp-field">
-                            <label class="lp-toggle" id="toggle-espacio-label">
-                                <span class="lp-toggle-text">¿Tenés local o espacio físico?</span>
-                                <span class="toggle-switch">
-                                    <input type="checkbox" id="toggle-espacio" name="espacio_fisico" value="1"
-                                        <?= $espFisico ? 'checked' : '' ?>>
-                                    <span class="toggle-slider"></span>
-                                </span>
-                            </label>
-                        </div>
-
-                        <!-- Dirección (visible solo si espacio_fisico = 1) -->
-                        <div class="lp-address-block <?= $espFisico ? 'visible' : '' ?>" id="lp-address-block">
+                        <!-- COL IZQUIERDA: Emprendimiento -->
+                        <div>
+                            <p class="lp-section-label">Datos del emprendimiento</p>
 
                             <div class="lp-field">
-                                <label for="lp-pais">País</label>
-                                <input id="lp-pais" type="text" name="pais"
-                                    value="<?= $val('pais') ?>"
-                                    placeholder="Ej: Argentina">
+                                <label for="lp-nombre-emp">Nombre del emprendimiento</label>
+                                <input id="lp-nombre-emp" type="text" name="nombre_emprendimiento"
+                                    value="<?= $val('nombre_emprendimiento') ?>"
+                                    placeholder="Ej: Café del Sur">
                             </div>
 
-                            <div class="lp-grid-2">
-                                <div class="lp-field">
-                                    <label for="lp-provincia">Provincia</label>
-                                    <input id="lp-provincia" type="text" name="provincia"
-                                        value="<?= $val('provincia') ?>"
-                                        placeholder="Ej: Buenos Aires">
-                                </div>
-                                <div class="lp-field">
-                                    <label for="lp-localidad">Localidad</label>
-                                    <input id="lp-localidad" type="text" name="localidad"
-                                        value="<?= $val('localidad') ?>"
-                                        placeholder="Ej: La Plata">
+                            <div class="lp-field">
+                                <label for="lp-fecha">Fecha de inicio</label>
+                                <input id="lp-fecha" type="date" name="fecha_inicio"
+                                    value="<?= $val('fecha_inicio') ?>">
+                            </div>
+
+                            <div class="lp-field">
+                                <label for="lp-fundador">Nombre del fundador</label>
+                                <input id="lp-fundador" type="text" name="nombre_fundador"
+                                    value="<?= $val('nombre_fundador', $request['perfil_nombre'] ?? '') ?>"
+                                    placeholder="Tu nombre completo">
+                            </div>
+
+                            <div class="lp-field">
+                                <label for="lp-colaboradores">Cantidad de colaboradores</label>
+                                <input id="lp-colaboradores" type="number" name="cantidad_colaboradores"
+                                    value="<?= $val('cantidad_colaboradores', '0') ?>"
+                                    min="0" placeholder="0">
+                            </div>
+
+                            <div class="lp-field">
+                                <label for="lp-telefono">Teléfono de contacto</label>
+                                <input id="lp-telefono" type="tel" name="telefono_contacto"
+                                    value="<?= $val('telefono_contacto', $request['perfil_whatsapp'] ?? '') ?>"
+                                    placeholder="+54911XXXXXXXX">
+                            </div>
+
+                            <div class="lp-field">
+                                <label for="lp-desc">Descripción</label>
+                                <textarea id="lp-desc" name="descripcion"
+                                    placeholder="Contanos de qué trata tu emprendimiento..."><?= $val('descripcion') ?></textarea>
+                            </div>
+                        </div>
+
+                        <!-- COL DERECHA: Situación + Infraestructura + Dirección -->
+                        <div>
+                            <p class="lp-section-label">¿Qué ofrecés?</p>
+
+                            <div class="lp-field">
+                                <div class="lp-check-row">
+                                    <label class="lp-check-item">
+                                        <input type="checkbox" name="vende_productos" value="1"
+                                            <?= $vendeProductos ? 'checked' : '' ?>>
+                                        Productos
+                                    </label>
+                                    <label class="lp-check-item">
+                                        <input type="checkbox" name="vende_servicios" value="1"
+                                            <?= $vendeServicios ? 'checked' : '' ?>>
+                                        Servicios
+                                    </label>
                                 </div>
                             </div>
 
-                            <div class="lp-grid-2">
+                            <p class="lp-section-label">Situación actual</p>
+
+                            <div class="lp-field">
+                                <label class="lp-toggle">
+                                    <span class="lp-toggle-text">¿Ya facturás?</span>
+                                    <span class="toggle-switch">
+                                        <input type="checkbox" id="toggle-factura" name="ya_factura" value="1"
+                                            <?= $yaFactura ? 'checked' : '' ?>>
+                                        <span class="toggle-slider"></span>
+                                    </span>
+                                </label>
+                            </div>
+
+                            <p class="lp-section-label">Infraestructura web</p>
+
+                            <div class="lp-field">
+                                <label class="lp-toggle">
+                                    <span class="lp-toggle-text">¿Tenés dominio registrado?</span>
+                                    <span class="toggle-switch">
+                                        <input type="checkbox" name="dominio_registrado" value="1"
+                                            <?= $dominioReg ? 'checked' : '' ?>>
+                                        <span class="toggle-slider"></span>
+                                    </span>
+                                </label>
+                            </div>
+
+                            <div class="lp-field">
+                                <label class="lp-toggle">
+                                    <span class="lp-toggle-text">¿Tenés hosting propio?</span>
+                                    <span class="toggle-switch">
+                                        <input type="checkbox" name="hosting_propio" value="1"
+                                            <?= $hostingPropio ? 'checked' : '' ?>>
+                                        <span class="toggle-slider"></span>
+                                    </span>
+                                </label>
+                            </div>
+
+                            <p class="lp-section-label">Espacio físico</p>
+
+                            <div class="lp-field">
+                                <label class="lp-toggle">
+                                    <span class="lp-toggle-text">¿Tenés local o espacio físico?</span>
+                                    <span class="toggle-switch">
+                                        <input type="checkbox" id="toggle-espacio" name="espacio_fisico" value="1"
+                                            <?= $espFisico ? 'checked' : '' ?>>
+                                        <span class="toggle-slider"></span>
+                                    </span>
+                                </label>
+                            </div>
+
+                            <!-- Dirección (visible solo si espacio_fisico = 1) -->
+                            <div class="lp-address-block <?= $espFisico ? 'visible' : '' ?>" id="lp-address-block">
+
                                 <div class="lp-field">
-                                    <label for="lp-calle">Calle</label>
-                                    <input id="lp-calle" type="text" name="calle"
-                                        value="<?= $val('calle') ?>"
-                                        placeholder="Ej: Av. Siempreviva">
+                                    <label for="lp-pais">País</label>
+                                    <input id="lp-pais" type="text" name="pais"
+                                        value="<?= $val('pais') ?>"
+                                        placeholder="Ej: Argentina">
                                 </div>
-                                <div class="lp-field">
-                                    <label for="lp-numero">Número</label>
-                                    <input id="lp-numero" type="text" name="numero"
-                                        value="<?= $val('numero') ?>"
-                                        placeholder="Ej: 742">
+
+                                <div class="lp-grid-2">
+                                    <div class="lp-field">
+                                        <label for="lp-provincia">Provincia</label>
+                                        <input id="lp-provincia" type="text" name="provincia"
+                                            value="<?= $val('provincia') ?>"
+                                            placeholder="Ej: Buenos Aires">
+                                    </div>
+                                    <div class="lp-field">
+                                        <label for="lp-localidad">Localidad</label>
+                                        <input id="lp-localidad" type="text" name="localidad"
+                                            value="<?= $val('localidad') ?>"
+                                            placeholder="Ej: La Plata">
+                                    </div>
+                                </div>
+
+                                <div class="lp-grid-2">
+                                    <div class="lp-field">
+                                        <label for="lp-calle">Calle</label>
+                                        <input id="lp-calle" type="text" name="calle"
+                                            value="<?= $val('calle') ?>"
+                                            placeholder="Ej: Av. Siempreviva">
+                                    </div>
+                                    <div class="lp-field">
+                                        <label for="lp-numero">Número</label>
+                                        <input id="lp-numero" type="text" name="numero"
+                                            value="<?= $val('numero') ?>"
+                                            placeholder="Ej: 742">
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <p class="lp-section-label">Contacto</p>
-
-                        <div class="lp-field">
-                            <label for="lp-telefono">Teléfono de contacto</label>
-                            <input id="lp-telefono" type="tel" name="telefono_contacto"
-                                value="<?= $val('telefono_contacto', $request['perfil_whatsapp'] ?? '') ?>"
-                                placeholder="+54911XXXXXXXX">
+                        <!-- FILA COMPLETA: botón -->
+                        <div class="lp-col-full">
+                            <button class="btn btn-aceptar" type="submit" id="btn-guardar-lp"
+                                style="width:100%;margin-top:8px">
+                                <?= $esEdicion ? 'Actualizar solicitud' : 'Enviar solicitud' ?>
+                            </button>
                         </div>
 
-                        <button class="btn btn-aceptar" type="submit" id="btn-guardar-lp"
-                            style="width:100%;margin-top:24px">
-                            <?= $esEdicion ? 'Actualizar solicitud' : 'Enviar solicitud' ?>
-                        </button>
-
+                    </div><!-- /lp-form-grid -->
                     </form>
                 </div>
 
